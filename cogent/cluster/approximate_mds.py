@@ -163,7 +163,6 @@ def affine_mapping(matrix_x, matrix_y):
     y = ux + kron(b, ones(1,n))
     """
 
-
     if matrix_x.shape != matrix_y.shape:
         raise ValueError, \
             "input matrices are not of same size"
@@ -217,8 +216,6 @@ def affine_mapping(matrix_x, matrix_y):
         if sign(rx[i, i]) != sign(ry[i, i]):
             qy[:, i] *= -1
 
-
-
     # matrix multiply: use '*' as all arguments are of type matrix
     ret_u = qy * qx.transpose()
     ret_b = oy - ret_u * ox
@@ -265,8 +262,6 @@ def adjust_mds_to_ref(mds_ref, mds_add, n_overlap):
     mds_add_adj = mds_add_adj.transpose()
 
     return mds_add_adj
-
-
 
 def recenter(joined_mds):
     """Recenter an Mds mapping that has been created by joining, i.e.
@@ -324,8 +319,6 @@ def recenter(joined_mds):
     
     return joined_mds
 
-
-
 def combine_mds(mds_ref, mds_add, n_overlap):
     """Returns a combination of the two MDS mappings mds_ref and
     mds_add.
@@ -365,7 +358,6 @@ def combine_mds(mds_ref, mds_add, n_overlap):
         mds_ref[0:mds_ref.shape[0]-n_overlap, :], mds_add_adj))
 
     return combined_mds
-
 
 
 def cmds_tzeng(distmat, dim = None):
@@ -467,17 +459,6 @@ class CombineMds(object):
             self._mds = recenter(self._mds)
 
         return self._mds
-    
-
-
-
-
-
-
-
-
-
-
 
 
 def calc_matrix_b(matrix_e, matrix_f):
@@ -792,36 +773,26 @@ def nystrom(seed_distmat, dim):
 
     return result
 
+### These functions are a modification from the notes from Andreas
+### implemented by Antonio
 
-"""
-=================
-
-Nystrom example implamentation:
-
-    Fast computation of an approximate MDS mapping / PCoA of an (yet unknown) full distance
-    matrix. Returned MDS coordinates have the shape num_objects x dim.
-
-    Arguments:
-    - `num_objects`:
-       total number of objects to compute mapping for.
-    - `num_seeds`:
-       number of seeds objects. high means more exact solution, but the slower 
-    - `dim`:
-       dimensionality of MDS mapping
-    - `dist_func`:
-       callable distance function. arguments should be i,j, with index
-       range 0..num_objects-1
-    - `permute_order`:
-       permute order of objects. recommended to avoid caveeats with
-       ordered data that might lead to distorted results. permutation
-       is random. run several times for benchmarking.
-       
-def nystrom_frontend(num_objects, num_seeds, dim, dist_func,
-                     permute_order=True):
+# def run_nystrom(num_objects, num_seeds, dim, dist_func, permute_order=True):
+def run_nystrom(num_objects, num_seeds, dim, dist_func, permute_order=True):
+    """ run Nystrom on a distance matrix
     
-    (seed_distmat, restore_idxs) = build_seed_matrix(
-        num_objects, num_seeds, dist_func, permute_order)
-
+    Fast computation of an approximate MDS mapping / PCoA of an (yet unknown) full 
+    distance matrix. Returned MDS coordinates have the shape num_objects x dim.
+    
+  	  inputs:
+    - num_objects: total number of objects to compute mapping for.
+    - num_seeds: number of seeds objects. high means more exact solution, but the slower 
+    - dim: dimensionality of MDS mapping
+    - dist_func: callable distance function. arguments should be i,j, with inde 
+      range 0..num_objects-1
+    - permute_order: permute order of objects. recommended to avoid caveeats with ordered 
+      data that might lead to distorted results. permutation is random. run several times 
+      for benchmarking.
+    """
     #picked_seeds = argsort(restore_idxs)[:num_seeds]
     
     mds_coords = nystrom(seed_distmat, dim)
@@ -830,35 +801,25 @@ def nystrom_frontend(num_objects, num_seeds, dim, dist_func,
     # altered during seed matrix calculation
     return mds_coords[restore_idxs]
 
-=================
+def run_scmds(num_objects, tile_size, tile_overlap, dim, dist_func, permute_order=True):
+    """ run SCMDS on a distance matrix
 
+    Fast MDS approxmiation SCMDS. Breaks (unknown) distance matrix into smaller chunks 
+    (tiles), computes MDS solutions for each of these and joins them to one form a full 
+    approximatiom.
 
-SCMDS example implamentation:
-
-    Fast MDS approxmiation SCMDS. Breaks (unknown) distance matrix
-    into smaller chunks (tiles), computes MDS solutions for each of
-    these and joins them to one form a full approximatiom.
-
-
-    Arguments:
-    - `num_objects`:
-      number of objects in distance matrix
-    - `tile_size`:
-      size of tiles/submatrices. the bigger, the slower but the better
-      the approximation
-    - `tile_overlap`:
-      overlap of tiles. has to be bigger than dimensionality
-    - `dim`:
-      requested dimensionality of MDS approximation
-    - `dist_func`:
-      distance function to compute distance between two objects x and
-      y. valid index range for x and y should be 0..num_objects-1
-    - `permute_order`:
-      permute input order if True. reduces distortion. order of
-      returned coordinates is kept fixed in either case.
-      
-def scmds_frontend(num_objects, tile_size, tile_overlap,
-                   dim, dist_func, permute_order=True):
+    inputs:
+    - num_objects: number of objects in distance matrix
+    - tile_size: size of tiles/submatrices. the bigger, the slower but the better the 
+    approximation
+    - tile_overlap: overlap of tiles. has to be bigger than dimensionality
+    - dim: requested dimensionality of MDS approximation
+    - dist_func: distance function to compute distance between two objects x and y. valid 
+    index range for x and y should be 0..num_objects-1
+    - permute_order: permute input order if True. reduces distortion. order of returned 
+    coordinates is kept fixed in either case.
+    """
+    
     if num_objects < tile_size:
         raise ValueError, \
             "Number of objects cannot be smaller than tile size"
@@ -886,7 +847,6 @@ def scmds_frontend(num_objects, tile_size, tile_overlap,
     # loop over all ntiles, overlapping tiles. apply mds to each
     # single one and join the solutions to the growing overall
     # solution
-    #
     tile_no = 1
     tile_start = 0
     tile_end = tile_size + \
@@ -945,6 +905,3 @@ def scmds_frontend(num_objects, tile_size, tile_overlap,
               (__name__, time.clock() - t0_overall))
         
     return result
-
-"""
-
