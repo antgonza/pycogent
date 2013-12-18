@@ -140,6 +140,34 @@ def run_eigh(F_matrix, dimensions=10):
     #NOTE: numpy produces transpose of Numeric!
 
     return eigvals, eigvecs.transpose()
+
+def run_eigsh(F_matrix,dimensions=10): 
+    """takes an F-matrix and returns eigenvalues and eigenvectors"""
+
+    #use eig to get vector of eigenvalues and matrix of eigenvectors
+    #these are already normalized such that
+    # vi'vi = 1 where vi' is the transpose of eigenvector i
+    eigvals, eigvecs = eigsh(F_matrix, k=dimensions)
+    #print shape(eigvecs)
+    #NOTE: numpy produces transpose of Numeric!
+    
+    return eigvals, eigvecs.transpose()
+
+def run_svd(F_matrix, i=1, usePowerMethod=0):    #fsvd function instead of eigh
+    """Takes a distance matrix and returns svd results
+    point_matrix: each row is an axis and the columns are points within the axis
+    eigvals: correspond to the rows and indicate the amount of the variation
+        that that the axis in that row accounts for
+    NOT NECESSARILY SORTED
+    """
+    U, s, V = svd(F_matrix, full_matrices=False)
+    
+    #drop imaginary component, if we got one
+    eigvals = (s).real
+    eigvecs = U.real
+    # print shape(eigvecs)
+    #point_matrix = get_principal_coordinates(eigvals, eigvecs)
+    return eigvals, eigvecs.transpose()
     
 def run_ssvd(F_matrix, k=10, p=10, qiter = 0):
     """takes an F-matrix and returns eigenvalues and eigenvectors of the ssvd method

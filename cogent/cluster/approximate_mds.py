@@ -88,6 +88,7 @@ solutions are then joined using an affine mapping approach.
 
 
 from numpy import sign, floor, sqrt, power, mean, array
+from math import log
 from numpy import matrix, ones, dot, argsort, diag, eye
 from numpy import zeros, concatenate, ndarray, kron, argwhere
 from numpy.linalg import eig, eigh, qr
@@ -108,6 +109,77 @@ __status__ = "Development"
 
 # print simple timings
 PRINT_TIMINGS = False
+
+
+def principal_coordinates_analysis(distance_matrix, algorithm, dimensions):
+    """Takes a distance matrix and returns principal coordinate results
+
+    point_matrix: each row is an axis and the columns are points within the axis
+    eigvals: correspond to the rows and indicate the amount of the variation
+        that that the axis in that row accounts for
+    NOT NECESSARILY SORTED
+    """
+    if algorithm=='nystrom':
+        n_seeds = int(log(distance_matrix.shape[0],2))**2
+        if n_seeds<=dimensions:
+            n_seeds=dimensions+1
+        elif n_seeds>=distance_matrix.shape[0]:
+            n_seeds=distance_matrix.shape[0]-1
+        
+        sample_distmtx = array(sample(distance_matrix,n_seeds))
+        
+        coords = nystrom(sample_distmtx, dimensions)
+        
+        eigvals = ['NaN']*dimensions
+        pcnts = ['NaN']*dimensions
+        
+    elif algorithm=='scmds':
+        num_objects = distance_matrix.shape[0]
+        tile_size = int(num_objects * 0.6)
+        tile_overlap = int(tile_size * 0.09)
+        
+        if tile_overlap > tile_size:
+            raise ValueError, \
+                 "The distance matrix is to small to be divided"
+        if dimensions > tile_overlap:
+            tile_overlap = dimensions
+#             raise ValueError, \
+#                  "You need to ask for less dimensions or your distance "+\
+#                  "matrix is too small"
+        
+        comb_mds = CombineMds()
+        tile_no = 1
+        tile_start = 0
+        tile_end = tile_size 
+        curr_tile_size = tile_end-tile_start        
+        
+        while curr_tile_size>0:
+            (tile_eigvecs, tile_eigvals) = cmds_tzeng(\
+                distance_matrix[tile_start:tile_end, tile_start:tile_end], dimensions)
+                        
+            comb_mds.add(tile_eigvecs, tile_overlap)
+            
+            if tile_end == num_objects:
+                break
+            else:
+                tile_start = tile_start + tile_size - tile_overlap
+                if tile_end+tile_size >= num_objects:
+                    tile_end = num_objects
+                else:
+                    tile_end = tile_end + tile_size - tile_overlap
+            
+            
+            tile_no += 1
+            if tile_no>10: break
+            curr_tile_size = tile_end-tile_start
+        
+        coords = array(comb_mds.getFinalMDS())
+        eigvals = ['NaN']*dimensions
+        pcnts = ['NaN']*dimensions
+    else:
+        raise ValueError("Method (%s) not implemented", algorithm)
+
+    return coords, eigvals, pcnts
 
 
 def rowmeans(mat):
